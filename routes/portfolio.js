@@ -1,4 +1,7 @@
 // routes/portfolio.js
+const pool = require('../db/pool');
+const fetchPortfolioForUser = require('../services/portfolioService');
+
 var express = require('express');
 var router = express.Router();
 
@@ -8,9 +11,13 @@ const dummyPortfolio = [
   { id: 2, stockOption: 'MSFT', quantity: 50, position: 'short', optionType: 'put' },
 ];
 
-// Route to get portfolio data
-router.get('/', function(req, res, next) {
-  res.json(dummyPortfolio);
+router.get('/portfolio', async (req, res) => {
+  try {
+    const portfolioData = await fetchPortfolioForUser('test'); // Fetch for 'test' user
+    res.json(portfolioData);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 module.exports = router;

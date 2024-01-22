@@ -1,13 +1,14 @@
 const { Pool } = require('pg');
+require('dotenv').config();
 
 const pool = new Pool({
   user: process.env.DB_USER,
-  host: 'portfolio-manager-db.postgres.database.azure.com',
-  database: 'postgres', // Replace with your database name
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME, 
   password: process.env.DB_CREDENTIAL,
-  port: 5432, // Default PostgreSQL port
+  port: 5432, 
   ssl: {
-    rejectUnauthorized: false // Necessary for Azure connections
+    rejectUnauthorized: false 
   }
 });
 

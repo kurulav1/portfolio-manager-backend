@@ -3,8 +3,8 @@ const axios = require('axios');
 
 async function fetchStockOptionData(tickerSymbol) {
   try {
-    const response = await axios.get(`https://portfolio-data-service.azurewebsites.net/options/${tickerSymbol}`);
-    return response.data; // Assuming the data is in the expected format
+    const response = await axios.get(`${process.env.DATA_SERVICE_URL}/options/${tickerSymbol}`);
+    return response.data;
   } catch (err) {
     console.error(err);
     throw err;

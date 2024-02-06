@@ -222,6 +222,36 @@ async function fetchHedgedPortfolioForUser(username) {
   }
 }
 
+async function calculateDeltaExposure(portfolio) {
+  let totalDelta = 0;
+  for (const option of portfolio) {
+    const delta = await calculateOptionDelta({
+      marketPrice: option.marketPrice,
+      strikePrice: option.strikePrice,
+      expirationDate: option.expirationDate,
+      optionType: option.optionType,
+      impliedVolatility: option.impliedVolatility
+    });
+    totalDelta += delta * option.quantity;
+  }
+  return totalDelta;
+}
+
+async function comparePortfolioPerformance(unhedgedPortfolio, hedgedPortfolio) {
+  const unhedgedValue = await calculatePortfolioValue(unhedgedPortfolio);
+  const hedgedValue = await calculatePortfolioValue(hedgedPortfolio);
+
+  return {
+    unhedgedValue: unhedgedValue,
+    hedgedValue: hedgedValue,
+    performanceDifference: hedgedValue - unhedgedValue
+  };
+}
+
+async function calculatePortfolioValue(portfolio) {
+  return portfolio.reduce((total, option) => total + (option.marketPrice * option.quantity), 0);
+}
+
 module.exports = { 
   fetchPortfolioForUser, 
   saveStockOptionData, 
@@ -231,4 +261,8 @@ module.exports = {
   deleteExpiredOptions,
   saveStockOptionDataBulk,
   fetchHedgedPortfolioForUser,
+  calculateDeltaExposure,
+  comparePortfolioPerformance,
+  calculatePortfolioValue
+
 };

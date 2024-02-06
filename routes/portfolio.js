@@ -1,18 +1,12 @@
 
 const pool = require('../db/pool');
-const { fetchPortfolioForUser, saveStockOptionData, addStockOptionToPortfolio, hedgeUserPortfolio, saveStockOptionDataBulk,fetchHedgedPortfolioForUser } = require('../services/portfolioService');
-const { fetchStockOptionData, fetchStockOptionsByTicker, getOrCreateStockOption } = require('../services/stockOptionService');
+const { fetchPortfolioForUser, hedgeUserPortfolio, fetchHedgedPortfolioForUser } = require('../services/portfolioService');
+const { fetchStockOptionData, getOrCreateStockOption, calculateDeltaExposure,
+comparePortfolioPerformance,
+calculatePortfolioValue} = require('../services/stockOptionService');
+const { verifyToken } = require('../middleware');
 var express = require('express');
 var router = express.Router();
-
-router.get('/', async (req, res) => {
-  try {
-    const portfolioData = await fetchPortfolioForUser('test'); 
-    res.json(portfolioData);
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
 
 router.get('/update/:tickerSymbol', async (req, res) => {
   console.log("Update route accessed");
@@ -29,7 +23,7 @@ router.get('/update/:tickerSymbol', async (req, res) => {
   }
 });
 
-router.get('/:username', async (req, res) => {
+router.get('/:username', verifyToken, async (req, res)  => {
   try {
     const username = req.params.username;
     const portfolio = await fetchPortfolioForUser(username);
@@ -41,7 +35,7 @@ router.get('/:username', async (req, res) => {
 });
 
 
-router.post('/add-to-portfolio', async (req, res) => {
+router.post('/add-to-portfolio', verifyToken, async (req, res) => {
   try {
     console.log("Received data:", req.body);
     const { username, stockOption, position, quantity } = req.body;
@@ -54,10 +48,8 @@ router.post('/add-to-portfolio', async (req, res) => {
     }
     const userId = userResult.rows[0].id;
 
-    
     const stockOptionId = await getOrCreateStockOption(stockOption);
 
-    
     const insertPortfolioQuery = 'INSERT INTO user_portfolios (user_id, stock_option_id, position, quantity, created_at) VALUES ($1, $2, $3, $4, NOW())';
     await pool.query(insertPortfolioQuery, [userId, stockOptionId, position, quantity]);
 
@@ -68,11 +60,10 @@ router.post('/add-to-portfolio', async (req, res) => {
   }
 });
 
-router.get('/hedge-portfolio/:username', async (req, res) => {
+router.get('/hedge-portfolio/:username', verifyToken, async (req, res) => {
   try {
     const username = req.params.username;
 
-    
     const userQuery = 'SELECT id FROM users WHERE username = $1';
     const userResult = await pool.query(userQuery, [username]);
     if (userResult.rows.length === 0) {
@@ -113,11 +104,45 @@ router.get('/stock-options/:tickerSymbol', async (req, res) => {
   }
 });
 
-router.get('/hedged-portfolio/:username', async (req, res) => {
+router.get('/hedged-portfolio/:username', verifyToken, async (req, res) => {
   try {
     const username = req.params.username;
     const hedgedPortfolio = await fetchHedgedPortfolioForUser(username);
     res.json(hedgedPortfolio);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err.message);
+  }
+});
+
+router.get('/delta-exposure/:username', verifyToken, async (req, res) => {
+  try {
+    const username = req.params.username;
+    const deltaExposure = await calculateDeltaExposure(username);
+    res.json({ deltaExposure });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err.message);
+  }
+});
+
+router.get('/compare-performance/:username', verifyToken, async (req, res) => {
+  try {
+    const username = req.params.username;
+    const performance = await comparePortfolioPerformance(username);
+    res.json(performance);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err.message);
+  }
+});
+
+router.get('/portfolio-value/:username', verifyToken, async (req, res) => {
+  try {
+    const username = req.params.username;
+    const portfolio = await fetchPortfolioForUser(username);
+    const portfolioValue = await calculatePortfolioValue(portfolio);
+    res.json({ portfolioValue });
   } catch (err) {
     console.error(err);
     res.status(500).send(err.message);
